@@ -1,143 +1,104 @@
-// "use client";
-// import React, { useEffect, useState } from "react";
-// import { supabase } from "../../utils/supabase";
-
-// const User = () => {
-//   // State for form input
-//   const [name, setName] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [userData, setUserData] = useState([]);
-
-//   // Fetch users from Supabase
-//   useEffect(() => {
-//     fetchUserDetails();
-//   }, []);
-
-//   async function fetchUserDetails() {
-//     try {
-//       let { data, error } = await supabase.from("user").select("*");
-//       if (error) throw error;
-//       setUserData(data);
-//     } catch (error) {
-//       console.error("Error fetching user data:", error.message);
-//     }
-//   }
-
-//   // Function to handle form submission
-//   async function handleSubmit(e) {
-//     e.preventDefault(); // Prevent page reload
-
-//     if (!name || !email) {
-//       alert("Please enter both name and email.");
-//       return;
-//     }
-
-//     try {
-//       const { data, error } = await supabase
-//         .from("user") // Ensure your table name is correct
-//         .insert([{ name, email }]);
-
-//       if (error) {
-//         console.error("Supabase Error:", error);
-//         alert(`Error: ${error.message}`);
-//         return;
-//       }
-
-//       console.log("User added:", data);
-//       setName("");
-//       setEmail("");
-//       fetchUserDetails(); // Refresh the user list
-//     } catch (error) {
-//       console.error("Unexpected Error:", error);
-//       alert("Something went wrong. Check the console.");
-//     }
-//   }
-
-//   return (
-//     <div className="container mx-auto pt-9 max-w-[900px]">
-//       {/* Display user list */}
-//       <ul>
-//         {userData.map((obj, i) => (
-//           <div key={i}>
-//             <li>{obj.name}</li>
-//             <li>{obj.email}</li>
-//           </div>
-//         ))}
-//       </ul>
-
-//       {/* Form */}
-//       <form onSubmit={handleSubmit}>
-//         <div className="flex gap-4">
-//           <input
-//             type="text"
-//             placeholder="Name"
-//             value={name}
-//             onChange={(e) => setName(e.target.value)}
-//             className="border border-solid border-black text-black placeholder:text-black p-3 rounded-lg text-base placeholder:text-base w-full placeholder:font-semibold outline-none"
-//             required
-//           />
-//           <input
-//             type="email"
-//             placeholder="Email"
-//             value={email}
-//             onChange={(e) => setEmail(e.target.value)}
-//             className="border border-solid border-black text-black placeholder:text-black p-3 rounded-lg text-base placeholder:text-base w-full placeholder:font-semibold outline-none"
-//             required
-//           />
-//         </div>
-//         <button
-//           type="submit"
-//           className="py-2 px-4 bg-green-600 rounded-lg text-white text-lg mt-6"
-//         >
-//           Submit
-//         </button>
-//       </form>
-//     </div>
-//   );
-// };
-
-// export default User;
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from "../../utils/supabase";
+import Cta from "./common/Cta";
 
 const User = () => {
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     lastname: "",
     email: "",
   });
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-
-    const { name, email, lastname } = formData;
-    if (!name || !email || !lastname) {
-      alert("Please enter both name and email.");
-      return;
+  // user show in localhost
+  const [userData, setUserData] = useState([]);
+  useEffect(() => {
+    detail();
+  }, []);
+  async function detail() {
+    let { data: user, error } = await supabase.from("user").select("*");
+    setUserData(user);
+  }
+  // delete rows
+  async function deleteUser(id) {
+    const { error } = await supabase.from("user").delete().eq("id", id);
+    if (error) {
+      console.error("Delete Error:", error);
+      alert("Failed to delete user.");
+    } else {
+      alert("User deleted successfully.");
+      detail();
     }
+    // setUserData(user);
+  }
+  // edit rows
+  // async function editUser(id) {
+  //   const { name, lastname, email } = formData;
+  //   const { data, error } = await supabase
+  //     .from("user")
+  //     .update({ name, lastname, email })
+  //     .eq("id", id)
+  //     .select();
+  //   if (error) {
+  //     console.error("Edit Error:", error);
+  //     alert("Failed to edit user.");
+  //   } else {
+  //     alert("User edited successfully.");
+  //     detail();
+  //   }
+  // }
+  function editUser(obj) {
+    setFormData({
+      name: obj.name,
+      lastname: obj.lastname,
+      email: obj.email,
+    });
+    setEditingId(obj.id);
+  }
 
-    try {
-      const { error } = await supabase
-        .from("user")
-        .insert([{ name, email, lastname }]);
-      if (error) {
-        console.error("Supabase Error:", error);
-        alert(`Error: ${error.message}`);
-        return;
-      }
-
-      setFormData({ name: "", email: "", lastname: "" });
-      alert("User added successfully!");
-    } catch (error) {
-      console.error("Unexpected Error:", error);
-      alert("Something went wrong. Check the console.");
+  async function saveUser() {
+    const { name, lastname, email } = formData;
+    const { error } = await supabase
+      .from("user")
+      .update({ name, lastname, email })
+      .eq("id", editingId);
+    if (error) {
+      alert("Failed to update");
+    } else {
+      alert("User updated");
+      setFormData({ name: "", lastname: "", email: "" });
+      setEditingId(null);
+      detail();
     }
   }
 
+  // 🔁 Submit handler
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const { name, email, lastname } = formData;
+
+    if (!name || !email || !lastname) {
+      alert("Please enter all fields.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("user")
+      .insert([{ name, email, lastname }]);
+
+    if (error) {
+      console.error("Supabase Error:", error);
+      alert(`Error: ${error.message}`);
+      return;
+    }
+    setFormData({ name: "", email: "", lastname: "" });
+    alert("User added successfully!");
+  };
+
   return (
     <div className="container mx-auto pt-9 max-w-[900px]">
-      <h1 className="text-black text-4xl pb-6 font-semibold text-center">
+      <h1 className="text-black text-4xl pb-6 font-medium text-center">
         User Form
       </h1>
       <form onSubmit={handleSubmit}>
@@ -150,7 +111,7 @@ const User = () => {
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="border border-solid border-black p-3 rounded-lg w-full outline-none text-black placeholder:text-black font-medium"
+              className="form_inputs"
               required
             />
             <input
@@ -160,7 +121,7 @@ const User = () => {
               onChange={(e) =>
                 setFormData({ ...formData, lastname: e.target.value })
               }
-              className="border border-solid border-black p-3 rounded-lg w-full outline-none text-black placeholder:text-black font-medium"
+              className="form_inputs"
               required
             />
           </div>
@@ -171,17 +132,44 @@ const User = () => {
             onChange={(e) =>
               setFormData({ ...formData, email: e.target.value })
             }
-            className="border border-solid border-black p-3 rounded-lg w-full outline-none text-black placeholder:text-black font-medium"
+            className="form_inputs"
             required
           />
         </div>
-        <button
-          type="submit"
-          className="py-2 px-4 bg-green-600 rounded-lg text-white mt-6"
-        >
-          Submit
-        </button>
+        {editingId ? (
+          <Cta type="button" onClick={saveUser} className="!mt-6 !bg-cyan-700">
+            Save
+          </Cta>
+        ) : (
+          <Cta type="submit" className="!mt-6">
+            Submit
+          </Cta>
+        )}   
       </form>
+      <ul className="mt-5">
+        {userData.map((obj, i) => (
+          <div
+            className="w-full border border-solid border-gray-500 p-3 mb-2 rounded-sm flex justify-between items-center"
+            key={i}
+          >
+            <div>
+              <li className=" text-fuchsia-950 tracking-wider text-lg font-medium">
+                {obj.name}
+                <span> {obj.lastname}</span>
+              </li>
+              <li>{obj.email}</li>
+            </div>
+            <div className="flex gap-3">
+              <Cta onClick={() => deleteUser(obj.id)} variant="primary">
+                Delete
+              </Cta>
+              <Cta variant="secondary" onClick={() => editUser(obj)}>
+                Edit
+              </Cta>
+            </div>
+          </div>
+        ))}
+      </ul>
     </div>
   );
 };

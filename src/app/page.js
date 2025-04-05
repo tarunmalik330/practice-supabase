@@ -1,10 +1,10 @@
 import User from "@/components/User";
-import UserDetail from "@/components/UserDetail";
+// import UserDetail from "@/components/UserDetail";
 
 export default function Home() {
   return (
     <div>
-      <UserDetail />
+      {/* <UserDetail /> */}
       <User />
     </div>
   );
